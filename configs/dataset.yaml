@@ -9,3 +9,7 @@ class_name: receipt
 # Images to skip, by file name.
 exclude:
   - IMG_8152_jpeg.rf.d38bc477dd222272bbfc5efefb8f4ca8.jpg   # test: second receipt labeled box-only
+
+# Files listing more images to skip (one file name per line, # for comments).
+exclude_files:
+  - configs/broken_labels.txt

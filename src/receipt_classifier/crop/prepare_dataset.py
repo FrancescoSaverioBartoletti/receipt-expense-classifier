@@ -30,6 +30,17 @@ def load_config(path: Path) -> dict:
     return cfg
 
 
+def load_exclusions(cfg: dict) -> set[str]:
+    """File names to skip: the inline `exclude` list plus every `exclude_files` list."""
+    names = set(cfg.get("exclude") or [])
+    for path in cfg.get("exclude_files") or []:
+        for line in Path(path).read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if line and not line.startswith("#"):
+                names.add(line)
+    return names
+
+
 def is_extracted(extract_dir: Path, splits: list[str]) -> bool:
     """True if every split folder already has its COCO annotations file."""
     return all((extract_dir / split / ANNOTATIONS_FILE).is_file() for split in splits)
@@ -176,7 +187,7 @@ def main() -> None:
         print(f"Extracting {cfg['raw_zip']} -> {extract_dir}")
         extract_zip(cfg["raw_zip"], extract_dir)
 
-    exclude = set(cfg.get("exclude") or [])
+    exclude = load_exclusions(cfg)
     all_stats = {split: convert_split(split, extract_dir, cfg["output_dir"], exclude) for split in splits}
     yaml_path = write_dataset_yaml(cfg["output_dir"], cfg["class_name"])
     print(f"YOLO-seg dataset written to {cfg['output_dir']} ({yaml_path.name})\n")
