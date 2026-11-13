@@ -4,3 +4,8 @@ raw_zip: data/raw/receipt_cropping.v3i.coco.zip
 extract_dir: data/interim/receipt_cropping_coco
 output_dir: data/processed/receipt_seg
 splits: [train, valid, test]
+class_name: receipt
+
+# Images to skip, by file name.
+exclude:
+  - IMG_8152_jpeg.rf.d38bc477dd222272bbfc5efefb8f4ca8.jpg   # test: second receipt labeled box-only

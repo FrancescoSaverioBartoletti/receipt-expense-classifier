@@ -6,6 +6,8 @@ epochs: 100
 imgsz: 640
 batch: 8                  # 8 GB VRAM: lower if out of memory
 patience: 20              # early stopping
+workers: 4                # data loading processes; keep low on Windows
+degrees: 10               # extra random rotation, receipts are often tilted
 project: runs/crop
 name: yolo11s_seg
 seed: 42

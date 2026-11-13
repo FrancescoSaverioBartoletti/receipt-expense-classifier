@@ -103,7 +103,7 @@ def polygon_to_yolo(polygon: list[float], width: int, height: int) -> str:
     return f"{CLASS_ID} " + " ".join(f"{v:.6f}" for v in points.ravel())
 
 
-def convert_split(split: str, src: Path, dest: Path) -> Counter:
+def convert_split(split: str, src: Path, dest: Path, exclude: set[str]) -> Counter:
     """Copy images and write YOLO-seg labels for one split; return the counts."""
     coco = load_coco(src / split / ANNOTATIONS_FILE)
     images_dir, labels_dir = dest / split / "images", dest / split / "labels"
@@ -116,6 +116,9 @@ def convert_split(split: str, src: Path, dest: Path) -> Counter:
     images = {img["id"]: img for img in coco["images"]}
     for image_id, anns in group_by_image(coco).items():
         img = images[image_id]
+        if img["file_name"] in exclude:
+            stats["excluded"] += 1
+            continue
         polygons, ann_stats = clean_annotations(anns, img["width"], img["height"])
         stats.update(ann_stats)
         if not polygons:
@@ -133,15 +136,33 @@ def convert_split(split: str, src: Path, dest: Path) -> Counter:
     return stats
 
 
+def write_dataset_yaml(dest: Path, class_name: str) -> Path:
+    """Write the dataset.yaml that ultralytics reads (absolute path, one class)."""
+    content = {
+        "path": dest.resolve().as_posix(),
+        "train": "train/images",
+        "val": "valid/images",
+        "test": "test/images",
+        "names": {CLASS_ID: class_name},
+    }
+    yaml_path = dest / "dataset.yaml"
+    with open(yaml_path, "w", encoding="utf-8") as f:
+        yaml.safe_dump(content, f, sort_keys=False)
+    return yaml_path
+
+
 def print_report(all_stats: dict[str, Counter]) -> None:
     """Print kept/dropped counts per split."""
-    header = f"{'split':<6} {'images kept':>11} {'img dropped':>11} {'polygons':>8} {'box-only':>8} {'duplicates':>10}"
+    header = (
+        f"{'split':<6} {'images kept':>11} {'img dropped':>11} {'excluded':>8} "
+        f"{'polygons':>8} {'box-only':>8} {'duplicates':>10}"
+    )
     print(header)
     print("-" * len(header))
     for split, s in all_stats.items():
         print(
-            f"{split:<6} {s['images_kept']:>11} {s['images_dropped']:>11} {s['polygons_kept']:>8} "
-            f"{s['box_only']:>8} {s['duplicate']:>10}"
+            f"{split:<6} {s['images_kept']:>11} {s['images_dropped']:>11} {s['excluded']:>8} "
+            f"{s['polygons_kept']:>8} {s['box_only']:>8} {s['duplicate']:>10}"
         )
 
 
@@ -155,8 +176,10 @@ def main() -> None:
         print(f"Extracting {cfg['raw_zip']} -> {extract_dir}")
         extract_zip(cfg["raw_zip"], extract_dir)
 
-    all_stats = {split: convert_split(split, extract_dir, cfg["output_dir"]) for split in splits}
-    print(f"YOLO-seg dataset written to {cfg['output_dir']}\n")
+    exclude = set(cfg.get("exclude") or [])
+    all_stats = {split: convert_split(split, extract_dir, cfg["output_dir"], exclude) for split in splits}
+    yaml_path = write_dataset_yaml(cfg["output_dir"], cfg["class_name"])
+    print(f"YOLO-seg dataset written to {cfg['output_dir']} ({yaml_path.name})\n")
     print_report(all_stats)
 
 
