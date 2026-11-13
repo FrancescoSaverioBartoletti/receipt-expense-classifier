@@ -1,0 +1,6 @@
+# Paths for step 1 dataset preparation (relative to the repo root).
+
+raw_zip: data/raw/receipt_cropping.v3i.coco.zip
+extract_dir: data/interim/receipt_cropping_coco
+output_dir: data/processed/receipt_seg
+splits: [train, valid, test]
