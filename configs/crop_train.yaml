@@ -1,0 +1,11 @@
+# Training config for step 1: receipt segmentation (YOLO11-seg).
+
+data: data/processed/receipt_seg/dataset.yaml
+model: yolo11s-seg.pt     # pretrained on COCO; yolo11n-seg.pt if VRAM/speed is tight
+epochs: 100
+imgsz: 640
+batch: 8                  # 8 GB VRAM: lower if out of memory
+patience: 20              # early stopping
+project: runs/crop
+name: yolo11s_seg
+seed: 42
